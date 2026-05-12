@@ -1,0 +1,15 @@
+{
+  "mcp": {
+    "servers": {
+      "appium-mcp": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["appium-mcp@latest"],
+        "env": {
+          "ANDROID_HOME": "C:\\Users\\CRTLAP360\\AppData\\Local\\Android\\Sdk",
+          "CAPABILITIES_CONFIG": "appium-android-project\\capabilities\\Android.json"
+        }
+      }
+    }
+  }
+}

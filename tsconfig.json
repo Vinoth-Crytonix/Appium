@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@base/*":      ["src/test/ts/base/*"],
+      "@pages/*":     ["src/test/ts/pages/*"],
+      "@support/*":   ["src/test/ts/support/*"],
+      "@data/*":      ["src/test/resources/data/*"],
+      "@config/*":    ["src/test/resources/config/*"]
+    },
+    "types": ["node"]
+  },
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
+  },
+  "include": ["src/test/ts/**/*.ts"],
+  "exclude": ["node_modules", "reports", "dist", "target"]
+}

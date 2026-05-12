@@ -1,0 +1,11 @@
+{
+  "platformName": "Android",
+  "appium:automationName": "UiAutomator2",
+  "appium:deviceName": "My Android Device",
+  "appium:udid": "10HF3MFP820007D",
+  "appium:platformVersion": "15",
+  "appium:appPackage": "com.jas.digitalkyats",
+  "appium:appActivity": "com.jas.digitalkyats.ui.home.NewHomeScreen",
+  "appium:noReset": true,
+  "appium:newCommandTimeout": 300
+}

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test *)",
+      "Bash(cd \"d:/Appium/appium-android-project\" && rm -f test-results/*.png test-results/*.xml && ls test-results/)",
+      "Bash(mvn -v)",
+      "Bash(mvn -q -Dtest=AndroidRunner test)",
+      "Bash(mvn -Dtest=AndroidRunner test)",
+      "Bash(mvn dependency:tree)",
+      "Bash(mvn -Dtest=PayToRunner test)"
+    ],
+    "additionalDirectories": [
+      "d:\\Appium\\appium-android-project\\test-results"
+    ]
+  }
+}

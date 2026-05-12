@@ -1,0 +1,27 @@
+{
+  "name": "appium-android-project",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Appium + Playwright + Cucumber-TS + JSON data + MCP + Jenkins. Flat step-definition design; HTML + Excel reports.",
+  "scripts": {
+    "test": "cucumber-js --config cucumber.config.js",
+    "test:payto": "cucumber-js --config cucumber.config.js src/test/resources/features/PayTo",
+    "test:login": "cucumber-js --config cucumber.config.js src/test/resources/features/Login",
+    "test:dry": "cucumber-js --config cucumber.config.js --dry-run",
+    "playwright:install": "playwright install --with-deps chromium",
+    "report": "node src/test/ts/reporting/generate-report.js",
+    "report:excel": "ts-node src/test/ts/reporting/generate-excel.ts",
+    "reports": "npm run report && npm run report:excel"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^11.1.1",
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^22.10.5",
+    "cucumber-html-reporter": "^7.2.0",
+    "exceljs": "^4.4.0",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3",
+    "webdriverio": "^9.27.0"
+  }
+}

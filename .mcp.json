@@ -1,0 +1,16 @@
+{
+  "$comment": "MCP server config — used by MCP-aware clients (Claude Code, Cursor, etc.) for interactive driving during test authoring. Not invoked by Cucumber/CI.",
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "appium": {
+      "command": "node",
+      "args": ["./mcp/appium-mcp-stub.js"],
+      "env": {
+        "APPIUM_URL": "http://127.0.0.1:4723"
+      }
+    }
+  }
+}
