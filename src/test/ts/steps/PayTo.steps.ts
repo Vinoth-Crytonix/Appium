@@ -1,7 +1,11 @@
 /**
- * PayTo step definitions. All locators inline. Submitting a payment leaves
- * the app on the login screen; "I tap Submit" auto-triggers the login flow
- * (performLogin) so the scenario completes end-to-end with a receipt.
+ * PayTo step definitions. All locators inline (no Page Objects).
+ *
+ * Payment completion — confirmation Pay tap, receipt screenshot, and Home
+ * tap — lives here, NOT in Login. Login only covers the login screen
+ * (credentials + Login button). When Submit lands on the login screen,
+ * PayTo's "Then" step delegates to performLogin() from Login.steps.ts to
+ * authorize, then continues with the confirmation + receipt + home work.
  */
 
 import { Given, When, Then } from '@cucumber/cucumber';
@@ -15,12 +19,27 @@ import { LOGIN, performLogin } from './Login.steps';
 // ---------------------------------------------------------------------------
 
 const PAYTO = {
-  // Pay tab — handles both English ("Pay") and Burmese ("ငွေပေး") locales
+  // Bottom Pay tab (English or Burmese locale)
   PAY_TAB:        '//android.widget.TextView[@text="Pay" or @text="ငွေပေး"]',
+
   ACCOUNT_FIELD:  '//*[@resource-id="com.jas.digitalkyats:id/account_number_edittext"]',
   AMOUNT_FIELD:   '//*[@resource-id="com.jas.digitalkyats:id/new_send_money_amount"]',
   REMARKS_FIELD:  '//*[@resource-id="com.jas.digitalkyats:id/new_send_money_comment"]',
   SUBMIT_BUTTON:  '//*[@resource-id="com.jas.digitalkyats:id/new_send_money_submit_button"]',
+
+  // Confirmation screen Pay button (English or Burmese)
+  PAY_CONFIRM:
+    '//*[(@text="Pay" or @text="PAY" or @text="ငွေပေး") and @clickable="true"] ' +
+    '| //android.widget.Button[@text="Pay" or @text="ငွေပေး"] ' +
+    '| //*[contains(@resource-id,"pay") and @clickable="true"] ' +
+    '| //*[contains(@resource-id,"confirm") and @clickable="true"]',
+
+  // Home button on receipt / success screen
+  HOME_BUTTON:
+    '//*[(@text="Home" or @text="HOME" or @text="မူလ") and @clickable="true"] ' +
+    '| //android.widget.Button[@text="Home" or @text="မူလ"] ' +
+    '| //*[@content-desc="Home" or @content-desc="မူလ"] ' +
+    '| //*[contains(@resource-id,"home") and @clickable="true"]',
 };
 
 // ---------------------------------------------------------------------------
@@ -28,7 +47,6 @@ const PAYTO = {
 // ---------------------------------------------------------------------------
 
 Given('I am on the home screen', async function (this: TestWorld) {
-  // The Before hook re-launched the app to its main activity. Just verify.
   const el = await this.driver.$(PAYTO.PAY_TAB);
   await el.waitForDisplayed({ timeout: 20_000 });
   assert.ok(await this.isPresent(PAYTO.PAY_TAB), 'expected to be on the home screen');
@@ -77,11 +95,25 @@ When('I tap Submit', async function (this: TestWorld) {
 });
 
 Then('the payment is completed and the receipt is captured', async function (this: TestWorld) {
-  // Auto-trigger the login flow when the login screen appears after Submit.
-  // performLogin() also handles confirmation Pay, receipt screenshot, and Home.
+  // 1. Authorize — if the login screen appeared after Submit, delegate to
+  //    performLogin() (credentials + Login button only). Login.steps owns
+  //    only the login screen; payment completion is PayTo's job.
   if (await this.isPresent(LOGIN.PASSWORD_FIELD)) {
     await performLogin(this);
   }
+
+  // 2. Confirmation — tap Pay
+  await this.click(PAYTO.PAY_CONFIRM);
+  await this.pause(7000);
+
+  // 3. Receipt — capture screenshot
+  await this.screenshotToTarget('receipt.png');
+
+  // 4. Home — tap to return
+  await this.click(PAYTO.HOME_BUTTON);
+  await this.pause(2500);
+
+  // 5. Verify we're back on the home screen
   assert.ok(
     await this.isPresent(PAYTO.PAY_TAB),
     'expected to be back on the home screen after payment completion',

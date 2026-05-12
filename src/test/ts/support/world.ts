@@ -91,7 +91,9 @@ setWorldConstructor(TestWorld);
 // Hooks
 // ---------------------------------------------------------------------------
 
-Before({ timeout: 120_000 }, async function (this: TestWorld) {
+// Default Before — restart the app to the launch activity so PayTo scenarios
+// always start on the home screen.
+Before({ tags: 'not @login-only', timeout: 120_000 }, async function (this: TestWorld) {
   this.driver = await remote({
     protocol: 'http',
     hostname: '127.0.0.1',
@@ -100,12 +102,23 @@ Before({ timeout: 120_000 }, async function (this: TestWorld) {
     capabilities: caps as any,
     logLevel: 'warn',
   });
-  // Force the app to its launch activity so every scenario starts on the home
-  // screen (capabilities have noReset: true, so user data is preserved).
   const pkg = (caps as any)['appium:appPackage'];
   try { await this.driver.terminateApp(pkg); } catch { /* ignore */ }
   await this.driver.activateApp(pkg);
   await this.driver.pause(3500);
+});
+
+// Login-only Before — DO NOT restart the app; the device is expected to be
+// on the login screen already (no payment side effects).
+Before({ tags: '@login-only', timeout: 120_000 }, async function (this: TestWorld) {
+  this.driver = await remote({
+    protocol: 'http',
+    hostname: '127.0.0.1',
+    port: 4723,
+    path: '/',
+    capabilities: caps as any,
+    logLevel: 'warn',
+  });
 });
 
 After({ timeout: 60_000 }, async function (this: TestWorld, scenario: ITestCaseHookParameter) {

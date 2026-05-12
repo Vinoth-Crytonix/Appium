@@ -6,7 +6,8 @@
   "scripts": {
     "test": "cucumber-js --config cucumber.config.js",
     "test:payto": "cucumber-js --config cucumber.config.js src/test/resources/features/PayTo",
-    "test:login": "cucumber-js --config cucumber.config.js src/test/resources/features/Login",
+    "test:login": "cucumber-js --config cucumber.config.js src/test/resources/features/Login --tags @login-only",
+    "test:all": "cucumber-js --config cucumber.config.js --tags \"@login-only or not @login-only\"",
     "test:dry": "cucumber-js --config cucumber.config.js --dry-run",
     "playwright:install": "playwright install --with-deps chromium",
     "report": "node src/test/ts/reporting/generate-report.js",

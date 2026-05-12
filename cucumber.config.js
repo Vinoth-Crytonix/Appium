@@ -7,6 +7,7 @@ module.exports = {
       'src/test/ts/steps/**/*.ts',
     ],
     paths: ['src/test/resources/features/**/*.feature'],
+    tags: 'not @login-only',
     format: [
       'progress-bar',
       'json:target/cucumber-report.json',

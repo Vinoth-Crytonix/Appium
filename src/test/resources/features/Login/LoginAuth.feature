@@ -1,23 +1,15 @@
-Feature: Login — authorize a payment
+@login-only
+Feature: Login — credentials only
 
-  This feature exercises the login flow in isolation. It assumes a PayTo payment
-  has been submitted first (the Background takes the same path so the login
-  screen is visible when the When step runs).
+  Tests the login screen in isolation. No payment is processed here: this
+  feature only enters the password and taps the Login button.
 
-  Background:
-    Given I am on the home screen
-    When I tap the Pay tab
-    And I enter the configured account number
-    And I enter a random amount with at most 3 digits
-    And I enter remarks "Test"
-    And I tap Submit
+  Precondition: the device must already be on the login screen when this
+  feature is run (e.g. left there by a prior PayTo flow that stopped at
+  authorization, or navigated to manually). If not, the first step fails
+  with a clear "expected the login screen" assertion.
 
-  Scenario: Authorize with literal password
-    Given the login screen is shown
-    When I log in with password "123456"
-    Then the receipt is captured and I return to the home screen
-
-  Scenario: Authorize with JSON test data
+  Scenario: Authorize on the login screen with the configured password
     Given the login screen is shown
     When I log in with the configured password
-    Then the receipt is captured and I return to the home screen
+    Then the login screen is dismissed
