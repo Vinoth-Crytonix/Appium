@@ -10,10 +10,13 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@support/*": ["src/test/ts/support/*"],
-      "@steps/*":   ["src/test/ts/steps/*"],
-      "@data/*":    ["src/test/resources/data/*"],
-      "@config/*":  ["src/test/resources/config/*"]
+      "@support/*":  ["src/test/ts/support/*"],
+      "@steps/*":    ["src/test/ts/steps/*"],
+      "@pages/*":    ["src/test/ts/pages/*"],
+      "@utils/*":    ["src/test/ts/utils/*"],
+      "@locators/*": ["src/test/ts/locators/*"],
+      "@data/*":     ["src/test/resources/data/*"],
+      "@config/*":   ["src/test/resources/config/*"]
     },
     "types": ["node"]
   },

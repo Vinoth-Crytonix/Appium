@@ -1,15 +1,18 @@
 # =====================================================================================
 # Feature
 # =====================================================================================
-# Feature Name   : PayTo — Submit Money Transfer
-# Description    : Validate the PayTo money-transfer flow of the Digital Kyats app.
-#                  A payment is submitted from the Pay screen; when the app prompts
-#                  for authorization the suite logs in automatically, then verifies
-#                  the receipt is captured and the user returns to the home screen.
+# Feature Name   : Merchant Payment — Recorded Coordinate Flow
+# Description    : Validate the merchant-payment journey of the Digital Kyats app.
+#                  The flow is driven by raw coordinate taps captured from Appium
+#                  Inspector (no resource-ids were available). The recorded taps are
+#                  replayed in order; when the Submit tap is reached the app shows
+#                  the login screen, the shared login procedure authorizes the
+#                  payment, and the remaining taps complete the flow.
 #
 # Application    : Digital Kyats (com.jas.digitalkyats)
 # Module         : Payments
-# Flow           : Home -> Pay -> Submit -> (login) -> Confirmation -> Receipt -> Home
+# Flow           : Home -> Merchant Category -> Merchant List -> Pay -> (login)
+#                  -> Confirmation -> Receipt
 #
 # Author         : Vignesh Raja
 # Organization   : Holydaniels
@@ -22,39 +25,46 @@
 #
 # Tags
 # ----
-# (none)         : Runs in the default profile.
+# @merchant-payment : Opt-in profile; this is a long recorded coordinate flow and
+#                     is excluded from the default run.
 #
 # Arguments (Examples table)
 # --------------------------
 # SlNo           : Serial number of the data row
 # Scenario Name  : Human-readable label for the data row
-# account        : Destination account number entered on the PayTo form
-# maxDigits      : Upper bound on the digit count of the randomly generated amount
-# remarks        : Free-text remark attached to the transfer
+#
+# NOTE: this flow takes no runtime input values — the journey is a fixed sequence
+#       of recorded coordinate taps and the form values (amount, reference id,
+#       remarks) are generated in code. The Examples table below is therefore a
+#       documentation-only row, kept for format consistency with the other
+#       feature files.
 #
 # Preconditions
 # -------------
 # The app is launched and the device is on the home screen (handled by the
 # BeforeAll / Before hooks).
 #
+# WARNING
+# -------
+# Coordinate taps are device-resolution specific (captured on a 720 x 1600
+# screen). They will need re-capturing if the device / resolution changes.
+#
 # =====================================================================================
 
-Feature: PayTo — submit a money transfer (auto-logs-in when prompted)
+@merchant-payment
+Feature: Merchant Payment — recorded coordinate flow with login
 
   #
   # =================================================================================
   # Feature Description
   # =================================================================================
   #
-  # As a user I want to submit a payment from the PayTo screen so that, after the
-  # app prompts me to authorize, I see the receipt and return home.
-  #
   # This feature validates:
   #
-  # 1. The PayTo form accepts account number, amount and remarks
-  # 2. Submit triggers the authorization (login) prompt
-  # 3. After login the confirmation Pay completes the payment
-  # 4. The receipt is captured and the user lands back on the home screen
+  # 1. The recorded coordinate taps navigate Home -> Merchant -> Pay
+  # 2. The merchant payment form is filled on the Pay screen
+  # 3. The login prompt after Submit is authorized via the shared login procedure
+  # 4. The confirmation and receipt screens complete the merchant payment
   #
   # =================================================================================
 
@@ -64,10 +74,11 @@ Feature: PayTo — submit a money transfer (auto-logs-in when prompted)
   # SUCCESS CASE
   # =================================================================================
   #
-  # Submit a payment end-to-end using the pipe-driven Examples table.
+  # Replay the recorded tap sequence end-to-end and confirm the merchant payment
+  # completes.
   #
-  @success
-  Scenario Outline: Submit a payment end-to-end — <Scenario Name>
+  @success @merchant-payment
+  Scenario Outline: Complete a merchant payment end-to-end — <Scenario Name>
 
     #
     # -------------------------------------------------------------------------------
@@ -78,33 +89,23 @@ Feature: PayTo — submit a money transfer (auto-logs-in when prompted)
 
     #
     # -------------------------------------------------------------------------------
-    # Action — open the Pay screen and fill the transfer form
+    # Action — replay the recorded merchant payment tap sequence
     # -------------------------------------------------------------------------------
     #
-    When I tap the Pay tab
-    And I enter the account number "<account>"
-    And I enter a random amount with at most <maxDigits> digits
-    And I enter remarks "<remarks>"
+    When I run the merchant payment tap sequence
 
     #
     # -------------------------------------------------------------------------------
-    # Action — submit the transfer (triggers the login prompt)
+    # Validate — merchant payment is completed
     # -------------------------------------------------------------------------------
     #
-    And I tap Submit
+    Then the merchant payment is completed
 
     #
     # -------------------------------------------------------------------------------
-    # Validate — payment completes and the receipt is captured
-    # -------------------------------------------------------------------------------
-    #
-    Then the payment is completed and the receipt is captured
-
-    #
-    # -------------------------------------------------------------------------------
-    # PayTo Test Data
+    # Merchant Payment Test Data (documentation-only — no runtime inputs)
     # -------------------------------------------------------------------------------
     #
     Examples:
-      | SlNo | Scenario Name                        | account      | maxDigits | remarks |
-      | 1    | Submit payment with configured data  | 09987665544  | 3         | Test    |
+      | SlNo | Scenario Name                       |
+      | 1    | Complete a merchant payment journey |
