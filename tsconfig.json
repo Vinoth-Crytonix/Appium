@@ -10,17 +10,20 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@base/*":      ["src/test/ts/base/*"],
-      "@pages/*":     ["src/test/ts/pages/*"],
-      "@support/*":   ["src/test/ts/support/*"],
-      "@data/*":      ["src/test/resources/data/*"],
-      "@config/*":    ["src/test/resources/config/*"]
+      "@support/*": ["src/test/ts/support/*"],
+      "@steps/*":   ["src/test/ts/steps/*"],
+      "@data/*":    ["src/test/resources/data/*"],
+      "@config/*":  ["src/test/resources/config/*"]
     },
     "types": ["node"]
   },
   "ts-node": {
     "require": ["tsconfig-paths/register"]
   },
-  "include": ["src/test/ts/**/*.ts"],
-  "exclude": ["node_modules", "reports", "dist", "target"]
+  "include": [
+    "src/test/ts/**/*.ts",
+    "src/test/resources/data/**/*.json",
+    "src/test/resources/config/**/*.json"
+  ],
+  "exclude": ["node_modules", "dist", "target"]
 }

@@ -10,9 +10,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT     = path.resolve(__dirname, '..', '..', '..', '..');
-const JSON_IN  = path.join(ROOT, 'target', 'cucumber-report.json');
-const HTML_OUT = path.join(ROOT, 'target', 'cucumber-html.html');
+const ROOT       = path.resolve(__dirname, '..', '..', '..', '..');
+const JSON_IN    = path.join(ROOT, 'target', 'cucumber-report.json');
+const HTML_OUT   = path.join(ROOT, 'target', 'cucumber-html.html');
+const FEATURE_DIR = path.join(ROOT, 'src', 'test', 'resources', 'features');
 
 if (!fs.existsSync(JSON_IN)) {
   console.error(`cucumber JSON not found: ${JSON_IN}\nRun "npm test" first.`);
@@ -20,6 +21,55 @@ if (!fs.existsSync(JSON_IN)) {
 }
 
 const raw = JSON.parse(fs.readFileSync(JSON_IN, 'utf-8'));
+
+/**
+ * Walk the .feature files and collect every (feature, scenario, steps) tuple,
+ * so we can show scenarios that were skipped by tag-filtering in addition to
+ * the ones cucumber actually executed.
+ */
+function walkFeatures(dir) {
+  const out = [];
+  if (!fs.existsSync(dir)) return out;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) { out.push(...walkFeatures(p)); continue; }
+    if (!entry.name.endsWith('.feature')) continue;
+    out.push(...parseFeature(p));
+  }
+  return out;
+}
+
+function parseFeature(file) {
+  const lines = fs.readFileSync(file, 'utf-8').split(/\r?\n/);
+  const items = [];
+  let feature = path.basename(file, '.feature');
+  let scenario = null;
+  let bgSteps = [];
+  let inBackground = false;
+  const stepKw = /^\s*(Given|When|Then|And|But)\b\s*(.*)$/;
+  for (const ln of lines) {
+    const fm = ln.match(/^Feature:\s*(.+)$/);
+    if (fm) { feature = fm[1].trim(); continue; }
+    if (/^\s*Background:/.test(ln))            { inBackground = true;  bgSteps = []; continue; }
+    const sm = ln.match(/^\s*Scenario(?: Outline)?:\s*(.+)$/);
+    if (sm) {
+      inBackground = false;
+      if (scenario) items.push(scenario);
+      scenario = { feature, name: sm[1].trim(), steps: [...bgSteps] };
+      continue;
+    }
+    const km = ln.match(stepKw);
+    if (km) {
+      const step = { keyword: km[1], name: km[2].trim() };
+      if (inBackground) bgSteps.push(step);
+      else if (scenario) scenario.steps.push(step);
+    }
+  }
+  if (scenario) items.push(scenario);
+  return items;
+}
+
+const allDeclared = walkFeatures(FEATURE_DIR);
 
 /** @returns 'passed' | 'failed' | 'skipped' */
 function scenarioStatus(steps = []) {
@@ -31,6 +81,7 @@ function scenarioStatus(steps = []) {
 }
 
 const scenarios = [];
+const executedKeys = new Set();
 for (const feat of raw) {
   for (const sc of feat.elements || []) {
     if (sc.type !== 'scenario') continue;
@@ -49,7 +100,27 @@ for (const feat of raw) {
       duration: (totalNs / 1e9).toFixed(2),
       steps,
     });
+    executedKeys.add(`${feat.name}|${sc.name}`);
   }
+}
+
+// Any scenario declared in a .feature file but absent from the JSON was
+// filtered out by tags (or otherwise skipped). Add it as a skipped entry.
+for (const dec of allDeclared) {
+  if (executedKeys.has(`${dec.feature}|${dec.name}`)) continue;
+  scenarios.push({
+    feature:  dec.feature,
+    name:     dec.name,
+    status:   'skipped',
+    duration: '0.00',
+    steps: dec.steps.map(s => ({
+      keyword:  s.keyword,
+      name:     s.name,
+      status:   'skipped',
+      duration: '0.000',
+      error:    '',
+    })),
+  });
 }
 
 const counts = {

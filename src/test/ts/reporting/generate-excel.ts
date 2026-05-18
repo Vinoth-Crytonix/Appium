@@ -1,19 +1,65 @@
 /**
  * Reads target/cucumber-report.json and emits target/cucumber-report.xlsx
- * with one row per step plus a "Summary" sheet.
+ * with one row per step plus a "Summary" sheet. Skipped scenarios (filtered
+ * out by tags) are read from the .feature files and appended to both sheets.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 import ExcelJS from 'exceljs';
 
-const ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const JSON_FILE = path.join(ROOT, 'target', 'cucumber-report.json');
-const OUT       = path.join(ROOT, 'target', 'cucumber-report.xlsx');
+const ROOT        = path.resolve(__dirname, '..', '..', '..', '..');
+const JSON_FILE   = path.join(ROOT, 'target', 'cucumber-report.json');
+const OUT         = path.join(ROOT, 'target', 'cucumber-report.xlsx');
+const FEATURE_DIR = path.join(ROOT, 'src', 'test', 'resources', 'features');
 
-type CucStep   = { keyword: string; name: string; result?: { status: string; duration?: number; error_message?: string } };
+type CucStep    = { keyword: string; name: string; result?: { status: string; duration?: number; error_message?: string } };
 type CucElement = { name: string; type: string; steps: CucStep[] };
 type CucFeature = { uri: string; name: string; elements: CucElement[] };
+type DeclaredStep = { keyword: string; name: string };
+type DeclaredScenario = { feature: string; name: string; steps: DeclaredStep[] };
+
+function walkFeatures(dir: string): DeclaredScenario[] {
+  const out: DeclaredScenario[] = [];
+  if (!fs.existsSync(dir)) return out;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) { out.push(...walkFeatures(p)); continue; }
+    if (!entry.name.endsWith('.feature')) continue;
+    out.push(...parseFeature(p));
+  }
+  return out;
+}
+
+function parseFeature(file: string): DeclaredScenario[] {
+  const lines = fs.readFileSync(file, 'utf-8').split(/\r?\n/);
+  const items: DeclaredScenario[] = [];
+  let feature = path.basename(file, '.feature');
+  let scenario: DeclaredScenario | null = null;
+  let bgSteps: DeclaredStep[] = [];
+  let inBackground = false;
+  const stepKw = /^\s*(Given|When|Then|And|But)\b\s*(.*)$/;
+  for (const ln of lines) {
+    const fm = ln.match(/^Feature:\s*(.+)$/);
+    if (fm) { feature = fm[1].trim(); continue; }
+    if (/^\s*Background:/.test(ln)) { inBackground = true; bgSteps = []; continue; }
+    const sm = ln.match(/^\s*Scenario(?: Outline)?:\s*(.+)$/);
+    if (sm) {
+      inBackground = false;
+      if (scenario) items.push(scenario);
+      scenario = { feature, name: sm[1].trim(), steps: [...bgSteps] };
+      continue;
+    }
+    const km = ln.match(stepKw);
+    if (km) {
+      const step: DeclaredStep = { keyword: km[1], name: km[2].trim() };
+      if (inBackground) bgSteps.push(step);
+      else if (scenario) scenario.steps.push(step);
+    }
+  }
+  if (scenario) items.push(scenario);
+  return items;
+}
 
 async function main() {
   if (!fs.existsSync(JSON_FILE)) {
@@ -22,11 +68,12 @@ async function main() {
   }
 
   const features: CucFeature[] = JSON.parse(fs.readFileSync(JSON_FILE, 'utf-8'));
+  const declared = walkFeatures(FEATURE_DIR);
+
   const wb = new ExcelJS.Workbook();
   wb.creator = 'appium-android-project';
   wb.created = new Date();
 
-  // ----- Summary sheet -----
   const summary = wb.addWorksheet('Summary');
   summary.columns = [
     { header: 'Feature',    key: 'feature',  width: 40 },
@@ -39,7 +86,6 @@ async function main() {
     { header: 'Duration s', key: 'duration', width: 12 },
   ];
 
-  // ----- Steps sheet -----
   const stepsWs = wb.addWorksheet('Steps');
   stepsWs.columns = [
     { header: 'Feature',    key: 'feature',  width: 40 },
@@ -51,8 +97,10 @@ async function main() {
     { header: 'Error',      key: 'error',    width: 80 },
   ];
 
-  let totalScenarios = 0, totalPassed = 0, totalFailed = 0;
+  let totalScenarios = 0, totalPassed = 0, totalFailed = 0, totalSkippedScn = 0;
+  const executedKeys = new Set<string>();
 
+  // ----- executed scenarios -----
   for (const feat of features) {
     for (const sc of feat.elements || []) {
       if (sc.type !== 'scenario') continue;
@@ -83,6 +131,7 @@ async function main() {
       const scStatus = failed > 0 ? 'failed' : (passed > 0 ? 'passed' : 'skipped');
       if (scStatus === 'passed') totalPassed++;
       if (scStatus === 'failed') totalFailed++;
+      if (scStatus === 'skipped') totalSkippedScn++;
 
       const row = summary.addRow({
         feature:  feat.name,
@@ -93,17 +142,48 @@ async function main() {
         duration: (durationNs / 1e9).toFixed(3),
       });
       colourRow(row, scStatus);
+      executedKeys.add(`${feat.name}|${sc.name}`);
     }
   }
 
-  // Header style
+  // ----- declared-but-absent scenarios (filtered out by tags) -----
+  for (const dec of declared) {
+    if (executedKeys.has(`${dec.feature}|${dec.name}`)) continue;
+    totalScenarios++;
+    totalSkippedScn++;
+
+    for (const step of dec.steps) {
+      const row = stepsWs.addRow({
+        feature:  dec.feature,
+        scenario: dec.name,
+        keyword:  step.keyword,
+        step:     step.name,
+        status:   'skipped',
+        duration: '0.000',
+        error:    '',
+      });
+      colourRow(row, 'skipped');
+    }
+    const row = summary.addRow({
+      feature:  dec.feature,
+      scenario: dec.name,
+      status:   'skipped',
+      steps:    dec.steps.length,
+      passed:   0,
+      failed:   0,
+      skipped:  dec.steps.length,
+      duration: '0.000',
+    });
+    colourRow(row, 'skipped');
+  }
+
+  // header style
   [summary, stepsWs].forEach(ws => {
-    ws.getRow(1).font = { bold: true };
     ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F3864' } } as any;
     ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
   });
 
-  // Totals row
+  // totals row
   summary.addRow({});
   const totals = summary.addRow({
     feature:  'TOTAL',
@@ -111,11 +191,13 @@ async function main() {
     status:   totalFailed === 0 ? 'passed' : 'failed',
     passed:   totalPassed,
     failed:   totalFailed,
+    skipped:  totalSkippedScn,
   });
   totals.font = { bold: true };
 
   await wb.xlsx.writeFile(OUT);
   console.log(`Excel report written → ${path.relative(ROOT, OUT)}`);
+  console.log(`  ${totalPassed} passed · ${totalFailed} failed · ${totalSkippedScn} skipped`);
 }
 
 function colourRow(row: ExcelJS.Row, status: string) {

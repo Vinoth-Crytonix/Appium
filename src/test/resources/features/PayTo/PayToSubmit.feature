@@ -1,7 +1,7 @@
 Feature: PayTo — submit a money transfer (auto-logs-in when prompted)
 
-  As a user I want to submit a payment from the PayTo screen so that, after
-  the app prompts me to authorize, I see the receipt and return home.
+  # As a user I want to submit a payment from the PayTo screen so that, after
+  # the app prompts me to authorize, I see the receipt and return home.
 
   Scenario: Submit a payment end-to-end using JSON test data
     Given I am on the home screen

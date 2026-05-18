@@ -2,7 +2,7 @@
   "payTo": {
     "account": "09987665544",
     "remarks": "Test",
-    "amountMaxDigits": 3
+    "amountMaxDigits": 2
   },
   "login": {
     "password": "123456"

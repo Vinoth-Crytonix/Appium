@@ -1,4 +1,4 @@
-name: Mobile + Web E2E
+name: Android E2E
 
 on:
   workflow_dispatch:
@@ -7,36 +7,35 @@ on:
       - '**.md'
 
 jobs:
-  mobile:
+  test:
+    # Real-device runs require a self-hosted runner with the Android device
+    # attached and Appium 2 installed.
     runs-on: self-hosted
-    if: false   # requires an attached Android device + Appium
+    if: false   # remove this line once a self-hosted runner is wired up
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: 'npm' }
+        with:
+          node-version: '20'
+          cache: 'npm'
+
       - run: npm ci
+
+      - run: npm run typecheck
+
       - name: Start Appium
         run: |
           npx appium --base-path / &
           sleep 8
-      - run: npm run test:mobile
-      - run: npm run report
-        if: always()
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with: { name: mobile-target, path: target }
 
-  web:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: 'npm' }
-      - run: npm ci
-      - run: npm run playwright:install
-      - run: npm run test:web
+      - run: npm test
+
       - run: npm run report
         if: always()
+
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: web-target, path: target }
+        with:
+          name: target
+          path: target

@@ -47,9 +47,15 @@ const PAYTO = {
 // ---------------------------------------------------------------------------
 
 Given('I am on the home screen', async function (this: TestWorld) {
-  const el = await this.driver.$(PAYTO.PAY_TAB);
-  await el.waitForDisplayed({ timeout: 20_000 });
-  assert.ok(await this.isPresent(PAYTO.PAY_TAB), 'expected to be on the home screen');
+  // The Before hook did terminateApp + activateApp. Poll for presence
+  // (not waitForDisplayed — WDIO9 + Burmese text XPaths can disagree on the
+  // "displayed" check even when the element is on screen).
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    if (await this.isPresent(PAYTO.PAY_TAB)) return;
+    await this.driver.pause(500);
+  }
+  assert.fail('expected to be on the home screen — Pay tab not found within 30s');
 });
 
 When('I tap the Pay tab', async function (this: TestWorld) {
@@ -102,7 +108,10 @@ Then('the payment is completed and the receipt is captured', async function (thi
     await performLogin(this);
   }
 
-  // 2. Confirmation — tap Pay
+  // 2. Confirmation — the app shows a brief loader after login; wait for the
+  //    actual Pay button to render (not just a fixed pause).
+  const payConfirmEl = await this.driver.$(PAYTO.PAY_CONFIRM);
+  await payConfirmEl.waitForDisplayed({ timeout: 30_000 });
   await this.click(PAYTO.PAY_CONFIRM);
   await this.pause(7000);
 

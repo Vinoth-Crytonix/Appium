@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(echo \"---exit:$?\")",
+      "Bash(echo \"tsc:$?\")",
+      "Bash(npx cucumber-js *)",
+      "Bash(grep -B 2 -A 1 'OK \\\\$ Money\\\\|Request Type\\\\|request_type' target/req-after-mobile-option.xml)",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\(0,'utf8'\\);const j=JSON.parse\\(d\\);j.forEach\\(f=>{console.log\\('Feature:',f.name\\);\\(f.elements||[]\\).forEach\\(e=>console.log\\('  -',e.name\\)\\)}\\)\")",
+      "Bash(node src/test/ts/reporting/generate-report.js)",
+      "Bash(adb devices *)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(grep -vE '^text=\"\"$')"
+    ]
+  }
+}
