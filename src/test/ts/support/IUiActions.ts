@@ -46,7 +46,7 @@ export interface IUiActions {
   tapAt(x: number, y: number): Promise<void>;
 
   /** Scroll the screen one page in the given direction. */
-  scroll(direction: 'up' | 'down'): Promise<void>;
+  scroll(direction: 'up' | 'down' | 'left' | 'right'): Promise<void>;
 
   /** The current screen's XML page source. */
   getPageSource(): Promise<string>;

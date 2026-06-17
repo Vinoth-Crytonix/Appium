@@ -7,10 +7,25 @@
       "Bash(mvn -q -Dtest=AndroidRunner test)",
       "Bash(mvn -Dtest=AndroidRunner test)",
       "Bash(mvn dependency:tree)",
-      "Bash(mvn -Dtest=PayToRunner test)"
+      "Bash(mvn -Dtest=PayToRunner test)",
+      "Bash(xargs grep -h \"^\\\\s*\\\\\\(Given\\\\|When\\\\|Then\\\\\\)\\(\")",
+      "Bash(awk '$1 > 1')",
+      "Bash(taskkill //F //PID 13620)",
+      "Bash(adb get-state *)",
+      "Bash(adb kill-server *)",
+      "Bash(adb start-server *)",
+      "Bash(xargs -I {} sh -c 'echo \"=== {} ===\" && grep -E \"[0-9]+ scenarios? \\\\\\(|× |session-expired popup\" {} | head -15')",
+      "Bash(xargs -I {} sh -c 'echo \"=== {} ===\" && grep -E \"[0-9]+ scenarios? \\\\\\(|× |session-expired popup\" {} | head -20')",
+      "Bash(xargs -I {} sh -c 'echo \"=== {} ===\" && grep -E \"[0-9]+ scenarios? \\\\\\(|× |√ \" {} | tail -40')",
+      "Bash(xargs -I {} grep -B 0 -A 4 \"× \" {})",
+      "Bash(npx cucumber-js *)",
+      "Bash(find /c/Users/CRTLAP360/AppData/Local/Temp/claude -name \"bvvndvrs9*\" 2>/dev/null | head -3)",
+      "Read(//c/Users/CRTLAP360/AppData/Local/Temp/claude/**)"
     ],
     "additionalDirectories": [
-      "d:\\Appium\\appium-android-project\\test-results"
+      "d:\\Appium\\appium-android-project\\test-results",
+      "D:\\Appium\\Appium-project\\Appium\\target",
+      "d:\\Appium\\Appium-project\\Appium\\target"
     ]
   }
 }

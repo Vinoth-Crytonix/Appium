@@ -1,13 +1,13 @@
-/**
- * LoginPage — owns the login screen ONLY: enter password, tap Login.
+﻿/**
+ * LoginPage â€” owns the login screen ONLY: enter password, tap Login.
  *
  * Single Responsibility: confirmation Pay, receipts and home navigation are
- * deliberately NOT here — those belong to the flow that triggered the login.
+ * deliberately NOT here â€” those belong to the flow that triggered the login.
  * Other pages depend on this page (via `isPrompted()` / `performLogin()`)
  * whenever the app demands re-authentication mid-flow.
  */
 
-import { BasePage } from './BasePage';
+import { BasePage } from './basePage';
 import { LOGIN_LOCATORS } from '../locators/login.locators';
 import testData from '../../resources/data/testdata.json';
 
@@ -32,12 +32,19 @@ export class LoginPage extends BasePage {
     return !(await this.ui.isPresent(LOGIN_LOCATORS.PASSWORD_FIELD));
   }
 
-  /** Enter credentials and tap Login. NOTHING else — see the class comment. */
+  /** Enter credentials and tap Login. NOTHING else â€” see the class comment. */
   async performLogin(password: string = testData.login.password): Promise<void> {
     await this.ui.sendKeys(LOGIN_LOCATORS.PASSWORD_FIELD, password);
     await this.ui.hideKeyboard();
-    await this.ui.pause(500);
+    await this.ui.pause(200);
     await this.ui.click(LOGIN_LOCATORS.LOGIN_BUTTON);
-    await this.ui.pause(6000);
+    // Wait for the login to actually submit (password field gone) rather than
+    // a blanket pause — returns the instant it clears, capped so a slow/again
+    // prompt cannot hang the flow.
+    const deadline = Date.now() + 8_000;
+    while (Date.now() < deadline) {
+      if (!(await this.ui.isPresent(LOGIN_LOCATORS.PASSWORD_FIELD))) return;
+      await this.ui.pause(200);
+    }
   }
 }

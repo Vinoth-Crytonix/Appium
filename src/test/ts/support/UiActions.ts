@@ -33,7 +33,7 @@ export class UiActions implements IUiActions {
     } catch {
       await el.click();
     }
-    await this.driver.pause(400);
+    await this.driver.pause(150);
     try { await el.clearValue(); } catch { /* ignore */ }
     await el.setValue(text);
   }
@@ -60,13 +60,26 @@ export class UiActions implements IUiActions {
   }
 
   async isPresent(selector: string): Promise<boolean> {
-    const el = await this.driver.$(selector);
-    return el.isExisting();
+    // Tolerate transient proxy / instrumentation errors: the UiAutomator2
+    // server on this build can crash and auto-restart mid-flow, during which
+    // `$`/`isExisting` reject with "socket hang up" / "instrumentation process
+    // is not running". Returning false here lets the surrounding poll loops
+    // keep retrying until the server recovers, instead of hard-failing the run.
+    try {
+      const el = await this.driver.$(selector);
+      return await el.isExisting();
+    } catch {
+      return false;
+    }
   }
 
   async isDisplayed(selector: string): Promise<boolean> {
-    const el = await this.driver.$(selector);
-    return el.isDisplayed().catch(() => false);
+    try {
+      const el = await this.driver.$(selector);
+      return await el.isDisplayed();
+    } catch {
+      return false;
+    }
   }
 
   async waitForDisplayed(selector: string, timeoutMs = DEFAULT_TIMEOUT): Promise<void> {
@@ -109,7 +122,7 @@ export class UiActions implements IUiActions {
     await this.driver.releaseActions();
   }
 
-  async scroll(direction: 'up' | 'down'): Promise<void> {
+  async scroll(direction: 'up' | 'down' | 'left' | 'right'): Promise<void> {
     try {
       await this.driver.execute('mobile: scrollGesture', {
         left: 0, top: 200, width: 720, height: 1200,

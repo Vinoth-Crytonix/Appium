@@ -1,5 +1,5 @@
-/**
- * BasePage — the shared substrate every page object extends.
+﻿/**
+ * BasePage â€” the shared substrate every page object extends.
  *
  * It carries the two collaborators every page needs (the interaction layer
  * and the diagnostics recorder) and exposes a single `dump()` helper. Pages
@@ -10,7 +10,7 @@
  */
 
 import type { IUiActions } from '../support/IUiActions';
-import type { Diagnostics } from '../utils/diagnostics';
+import type { Diagnostics } from '../support/diagnostics';
 
 /** The collaborators a page object is constructed with (Dependency Injection). */
 export interface PageContext {
