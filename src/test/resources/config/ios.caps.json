@@ -1,0 +1,27 @@
+{
+  "_comment_platform": "iOS capabilities, used when the run targets iOS (runner --platform ios, or APPIUM_PLATFORM=ios). Mirrors android.caps.json: everything here is sent as a capability EXCEPT `devices` and any key starting with `_`, which are treated as comments because JSON has no comment syntax.",
+
+  "platformName": "iOS",
+  "appium:automationName": "XCUITest",
+
+  "_comment_version": "platformVersion must match the OS on the attached devices, or session creation fails. Update when the devices are upgraded.",
+  "appium:platformVersion": "17.4",
+
+  "_comment_app": "iOS identifies the app by BUNDLE ID, not appPackage/appActivity. Replace with the real bundle id of the iOS build (Xcode: target > General > Bundle Identifier).",
+  "appium:bundleId": "com.jas.digitalkyats",
+
+  "_comment_noReset": "Same intent as Android: keep the signed-in session between runs so a soak is not 100 fresh logins.",
+  "appium:noReset": true,
+  "appium:newCommandTimeout": 300,
+
+  "_comment_port": "XCUITest's per-worker port is wdaLocalPort (WebDriverAgent), the counterpart of Android's systemPort. The runner adds the worker index, so device 1 gets 8100, device 2 gets 8101, and so on.",
+  "appium:wdaLocalPort": 8100,
+
+  "_comment_wda": "First run on each device builds and installs WebDriverAgent, which needs Xcode signing set up. usePrebuiltWDA speeds later runs; drop it if WDA is not yet installed on the device.",
+  "appium:useNewWDA": false,
+  "appium:wdaLaunchTimeout": 120000,
+  "appium:wdaConnectionTimeout": 120000,
+
+  "_comment_devices": "UDIDs of the real iOS devices to run on, in device order (device 1 first). Find them with: xcrun xctrace list devices. Empty means 'use whatever is connected'.",
+  "devices": []
+}

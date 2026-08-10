@@ -18,7 +18,7 @@ export const HOME_TAB =
 export const HOME_NAV_BUTTON =
   '(//android.widget.ImageView[@resource-id="com.jas.digitalkyats:id/navigation_bar_item_icon_view"])[1]';
 export const HOME_NAV_BUTTON_UIA =
-  'new UiSelector().resourceId("com.jas.digitalkyats:id/navigation_bar_item_icon_view").instance(0)';
+  'android=new UiSelector().resourceId("com.jas.digitalkyats:id/navigation_bar_item_icon_view").instance(0)';
 
 /** AUT package identifier — used by lifecycle checks (foreground / launch). */
 export const AUT_PACKAGE = 'com.jas.digitalkyats';

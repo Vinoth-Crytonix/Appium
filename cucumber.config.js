@@ -2,6 +2,13 @@
 // Profiles that should run all features layer on the default-paths glob via
 // `common`; the `isolated` profile uses baseRequires directly so the runner
 // can supply paths/tags from the CLI without the profile widening them.
+// Where this process writes its cucumber JSON. Concurrent device processes must
+// NOT share one path or they overwrite each other's results — the runner sets
+// RUN_REPORT_JSON per device/iteration and merges them back into
+// target/cucumber-report.json afterwards, so the HTML/Excel reporters (which
+// read that fixed path) keep working unchanged.
+const REPORT_JSON = process.env.RUN_REPORT_JSON || 'target/cucumber-report.json';
+
 const baseRequires = {
   requireModule: ['ts-node/register/transpile-only', 'tsconfig-paths/register'],
   require: [
@@ -11,7 +18,9 @@ const baseRequires = {
   ],
   format: [
     'progress-bar',
-    'json:target/cucumber-report.json',
+    // Quoted form: cucumber-js deprecates the bare `json:<path>` spelling once
+    // the path itself contains a colon (a Windows drive letter, e.g. D:/...).
+    `"json":"${REPORT_JSON}"`,
     'summary',
   ],
   formatOptions: { snippetInterface: 'async-await' },
@@ -26,10 +35,19 @@ const common = {
 module.exports = {
   // Default keeps existing behaviour: PayTo + Request Money, both flow features.
   // Validation features are opt-in via their @ui / @device / ... tags.
-  default: { ...common, tags: 'not @login-only and not @merchant-payment and not @validation' },
+  default: {
+    ...common,
+    tags: 'not @login-only and not @merchant-payment and not @validation and not @voucher-login and not @app-version and not @personal-profile',
+  },
 
   // Flow profiles
   login:    { ...common, tags: '@login-only' },
+  // Repeated login via the Voucher module — opt-in, it is a 15-cycle loop.
+  voucher:  { ...common, tags: '@voucher-login' },
+  // Installed-build guard — opt-in, it is a loop like the voucher one.
+  appVersion: { ...common, tags: '@app-version' },
+  // Profile edit path — opt-in: it writes to the account (email change).
+  personalProfile: { ...common, tags: '@personal-profile' },
   request:  { ...common, tags: '@request-money' },
   merchant: { ...common, tags: '@merchant-payment' },
 

@@ -19,6 +19,7 @@ import { MYANMAR_PAY_PERSONAL_LOCATORS as L } from '../locators/myanmarPayPerson
 import { waitForPresent } from '../support/waits';
 import { randomAmount } from '../support/random';
 import { recordTransaction } from '../support/transactionLog';
+import { logPopupHandled } from '../support/logger';
 
 /** Time we give the human to pick an image from the system gallery. */
 const MANUAL_PICK_TIMEOUT_MS = 60_000;
@@ -154,16 +155,54 @@ export class MyanmarPayPersonalPage extends BasePage {
   /** Tap Confirm Payment, then handle the optional re-auth prompt. */
   async tapConfirmPayment(): Promise<void> {
     await this.ui.click(L.CONFIRM_PAYMENT_BUTTON);
-    await this.ui.pause(800);
-    if (await this.login.isPrompted()) {
-      await this.login.performLogin();
+    // Confirm Payment may route through a re-auth screen before the receipt.
+    // A flat pause + instant presence check can miss a slowly-rendered login
+    // prompt and skip the re-auth, so the receipt never shows. Instead, race
+    // the login prompt against the receipt and act on whichever lands first.
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      if (await this.login.isPrompted()) {
+        await this.login.performLogin();
+        return;
+      }
+      if (await this.ui.isPresent(L.RECEIPT_MARKER)) return;
+      await this.ui.pause(400);
     }
   }
 
   // ---- Receipt ----------------------------------------------------------
 
+  /**
+   * Wait for the receipt marker, clearing any popup that covers it.
+   *
+   * An incoming "You received money" notification can pop OVER the receipt
+   * right after Confirm Payment and hide its marker - the global popup hook
+   * only fires at the AfterStep boundary, which is too late (the step has
+   * already failed). So we dismiss the blocking OK/Close popup inline, on every
+   * poll, then check for the receipt - letting it surface within the timeout.
+   */
   async waitForReceipt(timeoutMs = 30_000): Promise<boolean> {
-    return waitForPresent(this.ui, L.RECEIPT_MARKER, timeoutMs);
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      await this.dismissNotificationOverReceipt();
+      if (await this.ui.isPresent(L.RECEIPT_MARKER)) return true;
+      await this.ui.pause(500);
+    }
+    // Final clear + check, in case a popup landed on the last poll.
+    await this.dismissNotificationOverReceipt();
+    return this.ui.isPresent(L.RECEIPT_MARKER);
+  }
+
+  /** Tap the OK/Close of any notification popup sitting over the receipt. */
+  private async dismissNotificationOverReceipt(): Promise<void> {
+    try {
+      if (!(await this.ui.isPresent(L.NOTIFICATION_DISMISS))) return;
+      await this.ui.click(L.NOTIFICATION_DISMISS, 2000);
+      await this.ui.pause(300);
+      logPopupHandled('incoming notification dismissed during receipt wait');
+    } catch {
+      /* best-effort - never let a popup probe fail the receipt wait */
+    }
   }
 
   /** Screenshot convention: only the receipt screen is captured. */

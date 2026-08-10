@@ -79,6 +79,16 @@ export const MYANMAR_PAY_PERSONAL_LOCATORS = {
     'or contains(@text,"လက်ခံပြေစာ") or contains(@text,"ပြေစာ") ' +
     'or contains(@text,"ပြီးမြောက်") or contains(@text,"အောင်မြင်") ' +
     'or contains(@resource-id,"receipt") or contains(@resource-id,"success")]',
+
+  // An incoming "You received money" notification (and similar app alerts) can
+  // pop OVER the receipt screen right after Confirm Payment, hiding the receipt
+  // marker. Its OK / Close button is tapped during the receipt wait so the
+  // receipt can surface. Text-based only, so it never grabs an icon back/exit.
+  NOTIFICATION_DISMISS:
+    '//*[@clickable="true" and (' +
+    '@text="OK" or @text="Ok" or @text="ok" or @text="OKAY" or @text="Okay" or @text="okay" ' +
+    'or @text="Close" or @text="CLOSE" or @text="close" ' +
+    'or @text="ဟုတ်ကဲ့" or @text="အိုကေ" or @text="ပိတ်ရန်")]',
   INVOICE_BUTTON:
     '//*[(@text="Invoice" or @text="INVOICE" or @text="ပြေစာ") and @clickable="true"] ' +
     '| //*[@clickable="true" and .//*[@text="Invoice" or @text="INVOICE" or @text="ပြေစာ"]] ' +

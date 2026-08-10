@@ -28,6 +28,9 @@ import { MyanmarPayPersonalPage } from '../pages/myanmarPayPersonalPage';
 import { MyanmarPayHistoryPage } from '../pages/myanmarPayHistoryPage';
 import { ElectricityPage } from '../pages/electricityPage';
 import { ReportsPage } from '../pages/reportsPage';
+import { VoucherPage } from '../pages/voucherPage';
+import { PersonalProfilePage } from '../pages/personalProfilePage';
+import { BusinessProfilePage } from '../pages/businessProfilePage';
 import { PopupHandler } from './popupHandler';
 
 setDefaultTimeout(120_000);
@@ -47,6 +50,9 @@ export class TestWorld extends World {
   private _myanmarPayHistory?: MyanmarPayHistoryPage;
   private _electricity?: ElectricityPage;
   private _reports?: ReportsPage;
+  private _voucher?: VoucherPage;
+  private _personalProfile?: PersonalProfilePage;
+  private _businessProfile?: BusinessProfilePage;
   private _popupHandler?: PopupHandler;
 
   constructor(options: IWorldOptions) {
@@ -112,6 +118,21 @@ export class TestWorld extends World {
   get reports(): ReportsPage {
     this._reports ??= new ReportsPage(this.pageContext);
     return this._reports;
+  }
+
+  get voucher(): VoucherPage {
+    this._voucher ??= new VoucherPage(this.pageContext);
+    return this._voucher;
+  }
+
+  get personalProfile(): PersonalProfilePage {
+    this._personalProfile ??= new PersonalProfilePage(this.pageContext);
+    return this._personalProfile;
+  }
+
+  get businessProfile(): BusinessProfilePage {
+    this._businessProfile ??= new BusinessProfilePage(this.pageContext);
+    return this._businessProfile;
   }
 
   /** Shared en/my string-resource lookup for the localization audit. */

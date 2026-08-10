@@ -10,12 +10,17 @@
  * Page objects keep their own inline login checks as defense in depth (some
  * actions wait inside a single step and need to handle the prompt before the
  * step finishes). The AfterStep here catches every other case.
+ *
+ * Scope is an EXCLUSION expression, so every feature — existing or future —
+ * is covered by default. Tag a feature @manual-login ONLY when it SCRIPTS the
+ * login itself step by step (the way @voucher-login exercises the prompt in a
+ * loop): auto-dismissing there would consume the very screen under test.
  */
 
 import { AfterStep } from '@cucumber/cucumber';
 import { TestWorld } from '../support/world';
 
-AfterStep(async function (this: TestWorld) {
+AfterStep({ tags: 'not @manual-login' }, async function (this: TestWorld) {
   // BeforeAll-level steps may run before the per-scenario Before hook has
   // attached the driver; skip cleanly in that case.
   if (!this.driver) return;

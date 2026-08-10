@@ -6,32 +6,82 @@ Directory layout mirrors a Maven-style `src/test/{ts,resources}` project.
 
 ```
 appium-android-project/
-├── .github/workflows/ci.yml                GitHub Actions (self-hosted)
+├── .github/workflows/ci.yml                    GitHub Actions (self-hosted)
 ├── .gitignore
-├── .mcp.json                               MCP client config (Appium stub)
+├── .mcp.json                                   MCP client config (Appium stub)
 ├── README.md
-├── cucumber.config.js                      Cucumber-JS runtime config
+├── cucumber.config.js                          Cucumber-JS runtime config
 ├── package.json
 ├── tsconfig.json
 ├── mcp/
-│   └── appium-mcp-stub.js                  Minimal Appium MCP server
+│   └── appium-mcp-stub.js                      Minimal Appium MCP server
 └── src/test/
     ├── ts/
-    │   ├── support/world.ts                Driver lifecycle, hooks, low-level helpers
-    │   ├── steps/
-    │   │   ├── PayTo.steps.ts              Owns the whole payment flow
-    │   │   └── Login.steps.ts              Credentials + Login button only
+    │   ├── pages/                              Page Objects — one per module
+    │   │   ├── BasePage.ts                     Shared page primitives
+    │   │   ├── LoginPage.ts
+    │   │   ├── payToPage.ts
+    │   │   ├── RequestMoneyPage.ts
+    │   │   ├── MerchantPaymentPage.ts
+    │   │   ├── electricityPage.ts
+    │   │   ├── myanmarPayPersonalPage.ts
+    │   │   ├── myanmarPayHistoryPage.ts
+    │   │   ├── recentTransactionsPage.ts
+    │   │   └── reportsPage.ts
+    │   ├── locators/                           Selectors, one file per module
+    │   │   ├── common.locators.ts
+    │   │   ├── popups.locators.ts
+    │   │   └── <module>.locators.ts            login, payto, requestMoney, merchant,
+    │   │                                       electricity, myanmarPay*, reports, …
+    │   ├── steps/                              Cucumber glue, one folder per module
+    │   │   ├── login/  payTo/  requestMoney/
+    │   │   ├── merchantPayment/  electricity/
+    │   │   ├── myanmarPay/  recentTransactions/  reports/
+    │   │   └── validation/                     api, common, device, perf, security steps
+    │   ├── hooks/                              Before/After hooks
+    │   │   ├── appiumHooks.ts                  Driver lifecycle
+    │   │   ├── loginHooks.ts
+    │   │   ├── popupHooks.ts
+    │   │   ├── perfHooks.ts
+    │   │   ├── screenshotHooks.ts
+    │   │   └── stringValidationHooks.ts
+    │   ├── support/                            Driver, UI actions, shared utilities
+    │   │   ├── world.ts                        Cucumber World
+    │   │   ├── DriverManager.ts                Appium session lifecycle
+    │   │   ├── UiActions.ts / IUiActions.ts    UI action layer + interface
+    │   │   ├── navigation.ts  waits.ts  random.ts
+    │   │   ├── popupHandler.ts  diagnostics.ts  transactionLog.ts
+    │   │   ├── apiActions.ts  deviceActions.ts  perfHookUtils.ts
+    │   │   └── stringsRepository.ts  stringValidationAuditor.ts
+    │   ├── runner/                             Custom sequence runners
+    │   │   ├── runner.ts
+    │   │   ├── runElectricitySequence.js
+    │   │   └── runStringValidationAudit.ts
     │   └── reporting/
-    │       ├── generate-report.js          Interactive HTML report (Chart.js pie)
-    │       └── generate-excel.ts           XLSX report (Summary + Steps sheets)
+    │       ├── generate-report.js             Interactive HTML report (Chart.js pie)
+    │       ├── generate-excel.ts              XLSX report (Summary + Steps sheets)
+    │       ├── run-and-report.js              Run cucumber then build reports
+    │       └── stringValidationParity.ts
     └── resources/
-        ├── features/
-        │   ├── PayTo/PayToSubmit.feature   default suite (one payment)
-        │   └── Login/LoginAuth.feature     @login-only — opt-in
+        ├── features/                          Gherkin features, one folder per module
+        │   ├── login/login.feature
+        │   ├── payTo/payTo.feature
+        │   ├── requestMoney/requestMoney.feature
+        │   ├── merchantPayment/merchantPayment.feature
+        │   ├── electricity/electricity.feature
+        │   ├── myanmarPay/myanmarPayPersonal.feature
+        │   ├── myanmarPay/myanmarPayHistory.feature
+        │   ├── recentTransactions/recentTransactions.feature
+        │   ├── reports/allTransactionDetails.feature
+        │   └── validation/                     12 cross-cutting validation features
         ├── config/
-        │   └── android.caps.json           Appium UiAutomator2 capabilities
-        └── data/
-            └── testdata.json               JSON-driven test data
+        │   └── android.caps.json              Appium UiAutomator2 capabilities
+        ├── data/
+        │   └── testdata.json                  JSON-driven test data
+        └── stringValidation/                  EN/MY string-parity resources
+            ├── strings.en.xml
+            ├── strings.my.xml
+            └── README.md
 ```
 
 ## Stack
@@ -45,9 +95,10 @@ appium-android-project/
 | Reporting    | Custom HTML (Chart.js pie) + Excel (ExcelJS)      |
 | CI           | GitHub Actions (self-hosted runner)               |
 
-No Page Object Model classes, no separate `base/` / `hooks/` / `pages/` folders
-— the steps own their locators, the World owns the driver lifecycle and the
-low-level Appium helpers.
+Layered Page Object Model: `features/` describe behaviour, `steps/` bind Gherkin
+to `pages/`, `pages/` drive the UI through `locators/` and the `support/` action
+layer (`UiActions`), `hooks/` own the cross-cutting lifecycle (driver, login,
+popups, screenshots, perf), and the World wires the driver into each scenario.
 
 ## Behaviour
 

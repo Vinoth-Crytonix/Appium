@@ -49,7 +49,7 @@ export const MYANMAR_PAY_HISTORY_LOCATORS = {
     '//android.widget.ImageView[@resource-id="com.jas.digitalkyats:id/menu"]',
   /** UiAutomator strategy variant — routes the click via the UIA framework. */
   TITLE_BAR_MENU_UIA:
-    'new UiSelector().resourceId("com.jas.digitalkyats:id/menu")',
+    'android=new UiSelector().resourceId("com.jas.digitalkyats:id/menu")',
 
   // Sort menu items — the side panel exposes resource-ids per item.
   // Confirmed via Appium Inspector. Resource-id strategy is used in the

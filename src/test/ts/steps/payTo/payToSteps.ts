@@ -46,3 +46,13 @@ Then('the payment is completed and the receipt is captured', async function (thi
     'expected to be back on the home screen after payment completion',
   );
 });
+
+/**
+ * Tap the confirmation Pay button — a single tap only. No session-expiry
+ * handling, no re-Submit, no re-login.
+ */
+When('User taps the Pay button to complete the payment', { timeout: 6 * 60_000 },
+  async function (this: TestWorld) {
+    await this.payTo.tapConfirmationPay();
+  },
+);

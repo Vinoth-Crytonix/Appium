@@ -22,22 +22,30 @@
 
 import { AfterStep } from '@cucumber/cucumber';
 import { TestWorld } from '../support/world';
+import { logPopupHandled } from '../support/logger';
 
-async function sweep(world: TestWorld): Promise<void> {
+/** Dismiss catalog popups; returns the names of any that were dismissed. */
+async function sweep(world: TestWorld): Promise<string[]> {
   // BeforeAll-level steps may run before the per-scenario Before hook has
   // attached the driver; skip cleanly in that case.
-  if (!world.driver) return;
+  if (!world.driver) return [];
   try {
-    await world.popupHandler.dismissAny();
+    return await world.popupHandler.dismissAny();
   } catch {
     // best-effort - never let a popup probe break the step
+    return [];
   }
 }
 
 // Only sweep AFTER each step: a popup raised by a step is cleared before the
 // next one runs, and any popup cleared here will still be gone at the start of
 // the following step — so a separate BeforeStep sweep was pure redundant cost.
-// (The combined fast-path probe in PopupHandler keeps even this sweep cheap.)
-AfterStep(async function (this: TestWorld) {
-  await sweep(this);
+// Each catalog dismissal is logged with the step it followed (and device), so
+// handled popups (e.g. the "check offers?" prompt answered No) are verifiable.
+AfterStep(async function (this: TestWorld, params: any) {
+  const dismissed = await sweep(this);
+  const step = params?.pickleStep?.text ?? 'step';
+  for (const name of dismissed) {
+    logPopupHandled(`popup "${name}" auto-dismissed after step "${step}"`);
+  }
 });

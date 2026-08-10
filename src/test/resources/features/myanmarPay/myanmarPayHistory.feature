@@ -77,19 +77,19 @@ Feature: Myanmar Pay - Transaction History
 
     # Transaction Details Flow
     When User clicks on any transaction from Transaction History screen
-    Then User should be redirected to Transaction Detail screen
+    Then User should be redirected to Myanmar Pay Transaction Detail screen
 
     # Invoice Validation
     When User clicks on "Invoice" button
     Then Invoice screen or preview should be displayed
     When User clicks on device back button
-    Then User should be redirected back to Transaction Detail screen
+    Then User should be redirected back to Myanmar Pay Transaction Detail screen
 
     # Share Validation
     When User clicks on "Share" button
     Then Share screen should be displayed
     When User clicks on device back button
-    Then User should be redirected back to Transaction Detail screen
+    Then User should be redirected back to Myanmar Pay Transaction Detail screen
 
     # Home Navigation
     When User clicks on "Home" button

@@ -221,7 +221,7 @@ When('User clicks on any transaction from Transaction History screen',
   },
 );
 
-Then('User should be redirected to Transaction Detail screen',
+Then('User should be redirected to Myanmar Pay Transaction Detail screen',
   async function (this: TestWorld) {
     assert.ok(
       await this.myanmarPayHistory.waitForDetailScreen(),
@@ -278,7 +278,7 @@ Then('Invoice screen or preview should be displayed', async function (this: Test
   );
 });
 
-Then('User should be redirected back to Transaction Detail screen',
+Then('User should be redirected back to Myanmar Pay Transaction Detail screen',
   async function (this: TestWorld) {
     assert.ok(
       await this.myanmarPayHistory.waitForDetailScreen(),

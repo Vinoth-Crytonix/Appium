@@ -19,7 +19,7 @@ export const REPORTS_LOCATORS = {
     '//*[@resource-id="com.jas.digitalkyats:id/more"] ' +
     '| //android.widget.FrameLayout[@content-desc="More"]',
   MORE_TILE_UIA:
-    'new UiSelector().resourceId("com.jas.digitalkyats:id/more")',
+    'android=new UiSelector().resourceId("com.jas.digitalkyats:id/more")',
 
   // ---- More screen marker ----------------------------------------------
   MORE_SCREEN_HEADER:

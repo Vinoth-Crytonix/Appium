@@ -22,9 +22,12 @@ export class LoginPage extends BasePage {
     return this.ui.isPresent(LOGIN_LOCATORS.PASSWORD_FIELD);
   }
 
-  /** True if the login screen is currently prompting for credentials. */
+  /** True if the login screen is currently prompting for credentials.
+   *  Uses the UiAutomator resourceId probe: this runs after every step of
+   *  every scenario (loginHooks) and in tight poll loops, where an XPath
+   *  tree walk is the dominant cost — especially on WebView screens. */
   async isPrompted(): Promise<boolean> {
-    return this.ui.isPresent(LOGIN_LOCATORS.PASSWORD_FIELD);
+    return this.ui.isPresent(LOGIN_LOCATORS.PASSWORD_FIELD_UIA);
   }
 
   /** True once the login screen is gone (password field no longer present). */
@@ -43,8 +46,8 @@ export class LoginPage extends BasePage {
     // prompt cannot hang the flow.
     const deadline = Date.now() + 8_000;
     while (Date.now() < deadline) {
-      if (!(await this.ui.isPresent(LOGIN_LOCATORS.PASSWORD_FIELD))) return;
-      await this.ui.pause(200);
+      if (!(await this.ui.isPresent(LOGIN_LOCATORS.PASSWORD_FIELD_UIA))) return;
+      await this.ui.pause(150);
     }
   }
 }

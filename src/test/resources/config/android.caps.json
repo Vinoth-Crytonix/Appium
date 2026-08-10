@@ -1,11 +1,20 @@
 {
   "platformName": "Android",
   "appium:automationName": "UiAutomator2",
-  "appium:deviceName": "My Android Device",
-  "appium:udid": "adb-10HF3MFP820007D-il8RhW._adb-tls-connect._tcp",
   "appium:platformVersion": "15",
   "appium:appPackage": "com.jas.digitalkyats",
   "appium:appActivity": "com.jas.digitalkyats.ui.home.NewHomeScreen",
   "appium:noReset": true,
-  "appium:newCommandTimeout": 300
+  "appium:newCommandTimeout": 300,
+  "appium:systemPort": 8200,
+
+  "_comment_hiddenApi": "Session TEARDOWN restores the device's hidden-API policy via adb. On a wireless device that adb call fails whenever the handset is briefly unreachable, and the error is thrown from a callback with no handler — killing the whole Appium SERVER, not just the session. That is what ended two long runs (failures 42-50 and 90-100, contiguous to the end, exactly when a server died). This capability makes the driver tolerate that failure.",
+  "appium:ignoreHiddenApiPolicyError": true,
+  "devices": [
+    "adb-10HF3MFP820007D-il8RhW._adb-tls-connect._tcp",
+    "adb-X8HIDUAQSWGYPVGE-GLb21v._adb-tls-connect._tcp",
+    "adb-83c6f17575cc-6qprry._adb-tls-connect._tcp",
+    "adb-RZ8T7024W7B-wu7srw._adb-tls-connect._tcp"
+  ]
+
 }

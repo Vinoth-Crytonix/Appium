@@ -32,9 +32,34 @@ const lang = (arg('lang') ?? 'auto').toLowerCase();
 const feature = arg('feature');
 const langLabel = lang === 'my' ? 'Myanmar' : lang === 'en' ? 'English' : 'current';
 
-const runnerArgs = feature
-  ? ['src/test/ts/runner/runner.ts', '--feature', feature]
-  : ['src/test/ts/runner/runner.ts', '--sequence'];
+// The runner is path-based. Map the friendly feature name to its path (or accept
+// a raw path), and for the no-feature case run the flow features in order.
+const FEATURE_PATHS: Record<string, string> = {
+  login:              'src/test/resources/features/login/login.feature',
+  payTo:              'src/test/resources/features/payTo/payTo.feature',
+  merchant:           'src/test/resources/features/merchantPayment/merchantPayment.feature',
+  requestMoney:       'src/test/resources/features/requestMoney/requestMoney.feature',
+  recentTransactions: 'src/test/resources/features/recentTransactions/recentTransactions.feature',
+  myanmarPayPersonal: 'src/test/resources/features/myanmarPay/myanmarPayPersonal.feature',
+  myanmarPayHistory:  'src/test/resources/features/myanmarPay/myanmarPayHistory.feature',
+  electricity:        'src/test/resources/features/electricity/electricity.feature',
+};
+
+const SEQUENCE_PATHS = [
+  FEATURE_PATHS.payTo,
+  FEATURE_PATHS.requestMoney,
+  FEATURE_PATHS.merchant,
+  FEATURE_PATHS.myanmarPayPersonal,
+  FEATURE_PATHS.myanmarPayHistory,
+  FEATURE_PATHS.electricity,
+  FEATURE_PATHS.recentTransactions,
+];
+
+const targetPaths = feature
+  ? [FEATURE_PATHS[feature] ?? feature] // friendly name OR a raw feature path
+  : SEQUENCE_PATHS;
+
+const runnerArgs = ['src/test/ts/runner/runner.ts', ...targetPaths];
 
 console.log('────────────────────────────────────────────────────────');
 console.log(` String validation run — app language: ${langLabel}`);

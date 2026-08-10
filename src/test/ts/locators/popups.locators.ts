@@ -30,6 +30,11 @@ const CANCEL_BUTTON =
 const RETRY_BUTTON =
   '//*[@clickable="true" and (@text="Retry" or @text="RETRY" or @text="Try Again" or @text="ထပ်ကြိုးစားရန်")]';
 
+// "No" / decline button — used to answer promotional Yes/No prompts.
+const NO_BUTTON =
+  '//*[@clickable="true" and (@text="No" or @text="NO" or @text="no" ' +
+  'or @text="Not Now" or @text="No Thanks" or @text="မဟုတ်ပါ" or @text="မလို")]';
+
 export interface PopupRule {
   /** Short id used in logs. */
   name: string;
@@ -100,6 +105,20 @@ export const POPUP_RULES: readonly PopupRule[] = [
     dismiss:
       '//*[@clickable="true" and (@text="Later" or @text="LATER" or @text="Skip" or @text="SKIP")] ' +
       `| ${CANCEL_BUTTON} | ${DISMISS_BUTTON}`,
+  },
+
+  // ---- Promotional "check offers?" Yes/No prompt ---------------------
+  // Can appear mid-flow (seen on PayTo with 09664433118; may surface in any
+  // feature). Answer "No" and carry on.
+  {
+    name: 'offers-prompt',
+    signature:
+      '//*[contains(@text,"check offers") or contains(@text,"Check Offers") ' +
+      'or contains(@text,"would you like to check") ' +
+      'or contains(@text,"Would you like to check") ' +
+      'or (contains(@text,"offers") and contains(@text,"Would you like")) ' +
+      'or (contains(@text,"offer") and contains(@text,"Would you like"))]',
+    dismiss: NO_BUTTON,
   },
 
   // ---- Catch-all: a modal with only an OK button --------------------

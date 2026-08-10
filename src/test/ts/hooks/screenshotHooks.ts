@@ -13,9 +13,15 @@ import { spawnSync } from 'child_process';
 import * as path from 'path';
 import { TestWorld } from '../support/world';
 
+// Loop features run the same cycle dozens of times; a PNG per PASSING cycle is
+// pure noise in target/ and costs ~0.6s each. Failures are always captured.
+const PASS_SCREENSHOT_EXEMPT = ['@voucher-login'];
+
 After({ timeout: 60_000 }, async function (this: TestWorld, scenario: ITestCaseHookParameter) {
   try {
     const status = (scenario.result?.status ?? 'unknown').toString().toLowerCase();
+    const tags = (scenario.pickle.tags ?? []).map(t => t.name);
+    if (status === 'passed' && tags.some(t => PASS_SCREENSHOT_EXEMPT.includes(t))) return;
     const safe = (scenario.pickle.name || 'scenario').replace(/[^a-z0-9-]+/gi, '_');
     await this.diagnostics.screenshot(`${status}-${safe}.png`);
   } catch { /* ignore - never break the run on a failed screenshot */ }
