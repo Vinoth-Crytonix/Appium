@@ -17,6 +17,16 @@ import { waitForPresent } from '../support/waits';
 import { scrollIntoView, backNavigateUntil } from '../support/navigation';
 import { randomAlnum } from '../support/random';
 
+/**
+ * Must match the `LONG` timeout the step definitions use. The page's internal
+ * deadline is derived from it so the two cannot drift apart: a smaller internal
+ * limit silently truncates recovery, a larger one lets cucumber kill the step
+ * before it can report anything useful. Both mistakes happened here.
+ */
+const STEP_BUDGET_MS = 180_000;
+/** Left for the page-source dump and the error path after the deadline hits. */
+const DEADLINE_HEADROOM_MS = 20_000;
+
 export class PersonalProfilePage extends BasePage {
   // Typed as `string`, not left to infer the literal: BusinessProfilePage
   // extends this class and needs its own dump prefix, which a literal type
@@ -97,7 +107,8 @@ export class PersonalProfilePage extends BasePage {
     // stepDeadline is set once per STEP and honoured by every nested call, so no
     // combination of retries can overrun. When it passes, the helper gives up
     // immediately and reports properly instead of being killed mid-flight.
-    const deadline = this.stepDeadline ?? Date.now() + 70_000;
+    const deadline = this.stepDeadline
+      ?? Date.now() + (STEP_BUDGET_MS - DEADLINE_HEADROOM_MS);
     const ATTEMPTS = 2;
     for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
       // Never start work that cannot finish inside the step's budget.
@@ -169,9 +180,11 @@ export class PersonalProfilePage extends BasePage {
   }
 
   async tapMyProfile(): Promise<void> {
-    // 70s of cucumber's 90s step budget, leaving headroom for the dumps and
-    // the error path. Every nested settleAndTap honours this same deadline.
-    return this.withStepDeadline(70_000, async () => {
+    // Derived from the STEP budget, not an independent number. Hard-coding 70s
+    // while the step allowed 180s meant the helper gave up with "ran out of
+    // time" after 70s even though 110s of budget remained — the recovery was
+    // cut short by my own limit rather than by cucumber's.
+    return this.withStepDeadline(STEP_BUDGET_MS - DEADLINE_HEADROOM_MS, async () => {
     // Re-enter More if the app has slipped back to Home.
     //
     // On the FIRST cycle of a run this happened regularly: the Before hook's
