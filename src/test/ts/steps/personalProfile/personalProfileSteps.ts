@@ -71,8 +71,16 @@ When('I tap the Edit icon in the footer', LONG, async function (this: TestWorld)
 });
 
 Then('the profile fields should become editable', LONG, async function (this: TestWorld) {
+  // Both profile features share this step, but they prove edit mode differently:
+  // Personal Profile has editable text fields, Business Profile has none at all
+  // (its form is label captions plus photo/submit controls). Dispatch on the
+  // screen that is actually showing, so each asserts against a marker its own
+  // screen renders — a single shared marker made this step 0/10 on Business.
+  const page = (await this.businessProfile.isOnBusinessProfileScreen())
+    ? this.businessProfile
+    : this.personalProfile;
   assert.ok(
-    await this.personalProfile.waitForEditMode(),
+    await page.waitForEditMode(),
     'the profile stayed read-only — the footer Edit icon did not open edit mode',
   );
 });

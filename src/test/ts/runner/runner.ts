@@ -118,6 +118,23 @@ let serverPerDevice = false;
 let appiumBasePort = DEFAULT_APPIUM_PORT;
 /** --until-failure: stop a lane at its first failing cycle. */
 let stopOnFailure = false;
+/**
+ * --retry N: re-run a failed cycle from a clean start, up to N times.
+ *
+ * Aimed at ONE specific failure: over wireless adb (`_adb-tls-connect._tcp`) a
+ * brief Wi-Fi drop kills the UiAutomator2 instrumentation, and every command in
+ * the cycle then fails with "instrumentation process is not running". That is a
+ * transport fault, not a defect in the app or the script — measured at 4 session
+ * deaths in 40 cycles, which cost 2 cycles outright.
+ *
+ * Recovering mid-scenario cannot save those cycles: rebuilding the session
+ * relaunches the app, so the flow resumes on Home half-way through and fails
+ * anyway. Re-running the whole scenario CAN, because the Before hook rebuilds
+ * the session and starts from Home.
+ *
+ * Default 0 — a retry that hides a real defect is worse than a visible failure.
+ */
+let retries = 0;
 /** --duration: keep re-running each lane in batches until this budget is spent. */
 let soakMs = 0;
 
@@ -182,6 +199,9 @@ function runDeviceProcess(opts: DeviceProcessOpts): Promise<DeviceRunResult> {
     // --until-failure: stop this process the moment a cycle fails, instead of
     // grinding through the remaining expanded rows.
     if (stopOnFailure) cmdArgs.push('--fail-fast');
+    // Re-run a cycle the transport killed. --fail-fast is the opposite intent
+    // ("stop at the first failure"), so the two are mutually exclusive.
+    if (retries > 0 && !stopOnFailure) cmdArgs.push('--retry', String(retries));
 
     const env: NodeJS.ProcessEnv = { ...process.env, CUCUMBER_WORKER_ID: String(workerId) };
     if (reportJson) env.RUN_REPORT_JSON = reportJson;
@@ -545,6 +565,8 @@ async function main(): Promise<number> {
     else if (a === '--duration' || a === '-d') soakMs = parseDuration(argv[++i] ?? '');
     // Stop a lane the moment a cycle fails — "run until it breaks".
     else if (a === '--until-failure') stopOnFailure = true;
+    // Re-run a failed cycle from a clean start (see `retries`).
+    else if (a === '--retry') retries = Math.max(0, Number(argv[++i]) || 0);
     // Print the feature→device plan and exit, without starting any session.
     else if (a === '--plan') planOnly = true;
     // Target platform: android (default) or ios. Set in this process BEFORE

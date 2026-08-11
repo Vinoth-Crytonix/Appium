@@ -126,12 +126,12 @@ export class TestWorld extends World {
   }
 
   get personalProfile(): PersonalProfilePage {
-    this._personalProfile ??= new PersonalProfilePage(this.pageContext);
+    this._personalProfile ??= new PersonalProfilePage(this.pageContext, this.login);
     return this._personalProfile;
   }
 
   get businessProfile(): BusinessProfilePage {
-    this._businessProfile ??= new BusinessProfilePage(this.pageContext);
+    this._businessProfile ??= new BusinessProfilePage(this.pageContext, this.login);
     return this._businessProfile;
   }
 

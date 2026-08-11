@@ -461,22 +461,48 @@ function addBatchToTally(tally: CycleTally, reportJson: string): void {
   }
   if (!Array.isArray(features)) return;
 
+  // One entry per CYCLE, keyed by scenario id, holding its final attempt.
+  //
+  // Under --retry cucumber writes every attempt of a re-run scenario into the
+  // JSON, so counting elements directly would report 51 cycles for a 50-cycle
+  // run and mark one failed — the retry would show up as the very failure it
+  // just eliminated. Keying by id keeps the LAST attempt, which is the cycle's
+  // real outcome. A Map preserves insertion order, so replacing a value does not
+  // move it and the cycle numbers in `failedAt` stay stable.
+  //
+  // Without --retry every key appears once and this behaves exactly as before.
+  //
+  // The key is `line`, NOT `id`: cucumber gives every row of an expanded
+  // Examples table the SAME id (verified against a real report — 40 cycles, 21
+  // distinct ids, but 40 distinct lines). Keying by id would merge separate
+  // cycles and under-report the run. `line` is the Examples row, so it is unique
+  // per cycle and identical across retries of that cycle — exactly the identity
+  // needed here. `idx` only guards a malformed report with no line at all.
+  const cycles = new Map<string, boolean>();   // cycle -> failed?
+  let idx = 0;
   for (const feature of features) {
     const elements = (feature as { elements?: unknown[] })?.elements;
     if (!Array.isArray(elements)) continue;
     for (const scenario of elements) {
-      const steps = (scenario as { steps?: unknown[] })?.steps;
+      const s = scenario as { steps?: unknown[]; id?: string; line?: number; name?: string };
+      const steps = s.steps;
       if (!Array.isArray(steps) || steps.length === 0) continue;
-      tally.total++;
+      idx++;
+      const key = `${s.id ?? ''}#${s.line ?? `idx${idx}`}`;
       const failed = steps.some(
-        s => (s as { result?: { status?: string } })?.result?.status === 'failed',
+        st => (st as { result?: { status?: string } })?.result?.status === 'failed',
       );
-      if (failed) {
-        tally.failed++;
-        tally.failedAt.push(tally.total);
-      } else {
-        tally.passed++;
-      }
+      cycles.set(key, failed);
+    }
+  }
+
+  for (const failed of cycles.values()) {
+    tally.total++;
+    if (failed) {
+      tally.failed++;
+      tally.failedAt.push(tally.total);
+    } else {
+      tally.passed++;
     }
   }
 }

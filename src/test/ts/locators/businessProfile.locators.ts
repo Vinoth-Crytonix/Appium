@@ -69,4 +69,24 @@ export const BUSINESS_PROFILE_LOCATORS = {
     '//*[@clickable="true" and .//*[contains(@text,"Add Business Photo")]] ' +
     '| //*[contains(@text,"Add Business Photo")] ' +
     '| //*[contains(@content-desc,"Add Business Photo")]',
+
+  /**
+   * Proof that Business Profile is in EDIT mode.
+   *
+   * The personal-profile marker (any enabled EditText) cannot be reused here.
+   * CONFIRMED from a live dump of this screen in edit mode: it contains ZERO
+   * EditText nodes. The address fields render as label captions ("Building No.",
+   * "Floor No.", "Street", ...) and Android only puts VISIBLE rows in the
+   * accessibility tree, so whether an EditText is found depends entirely on
+   * where the long form happens to be scrolled. That is why this step passed at
+   * 88% in one soak and 0/10 in the next — it was never testing edit mode.
+   *
+   * "Add Business Photo" and "Submit" are edit-mode-only controls and both sit
+   * in the region the form opens at, so either one showing is real proof.
+   */
+  EDIT_MODE_MARKER:
+    '//*[contains(@text,"Add Business Photo")] ' +
+    '| //*[contains(@content-desc,"Add Business Photo")] ' +
+    '| //*[@resource-id="com.jas.digitalkyats:id/button_submit"] ' +
+    '| //*[contains(@text,"Submit")]',
 } as const;

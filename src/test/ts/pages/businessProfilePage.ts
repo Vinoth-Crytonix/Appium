@@ -23,6 +23,21 @@ import { scrollIntoView } from '../support/navigation';
 export class BusinessProfilePage extends PersonalProfilePage {
   protected readonly dumpPrefix = 'business-profile';
 
+  /**
+   * Business Profile proves edit mode differently from Personal Profile.
+   *
+   * The inherited check waits for an enabled EditText, and this screen has none
+   * at all — see EDIT_MODE_MARKER in the business locators. Overriding here
+   * keeps the shared step ("the profile fields should become editable") working
+   * for both features while each asserts against a marker its own screen
+   * actually renders.
+   */
+  async waitForEditMode(timeoutMs = 15_000): Promise<boolean> {
+    const editable = await waitForPresent(this.ui, L.EDIT_MODE_MARKER, timeoutMs);
+    if (!editable) await this.dump('edit-mode-not-entered');
+    return editable;
+  }
+
   // ---- My Profile → Business Profile -------------------------------------
 
   async tapBusinessProfile(): Promise<void> {
@@ -33,6 +48,11 @@ export class BusinessProfilePage extends PersonalProfilePage {
     await this.settleAndTap(L.BUSINESS_PROFILE_OPTION, {
       what: 'the Business Profile row', expect: L.BUSINESS_PROFILE_SCREEN_HEADER });
     await this.ui.pause(400);
+  }
+
+  /** Cheap, non-waiting probe: is the Business Profile screen the one showing? */
+  async isOnBusinessProfileScreen(): Promise<boolean> {
+    return this.ui.isPresent(L.BUSINESS_PROFILE_SCREEN_HEADER);
   }
 
   async waitForBusinessProfileScreen(timeoutMs = 15_000): Promise<boolean> {

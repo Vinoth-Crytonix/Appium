@@ -2,17 +2,29 @@
  * PersonalProfilePage — drives More → My Profile → Personal Profile, the
  * footer Edit affordance, and the email edit + submit.
  *
- * Global login is handled by the AfterStep loginHooks, so this page does not
- * inject LoginPage — same arrangement as {@link ReportsPage}.
+ * Login is handled BOTH globally and inline. The AfterStep loginHooks dismiss a
+ * re-auth prompt between steps, but this app expires the session mid-step on a
+ * long soak: a navigation step that takes ~80s can start on the More screen and
+ * find the LOGIN screen by the time it looks for its target. The hook cannot
+ * help there — it only runs between steps — so the prompt is also cleared
+ * inline, the same "defense in depth" PayToPage uses. Without it, roughly one
+ * profile cycle in ten failed with "the More tab is still not displayed",
+ * because the login screen has no bottom navigation at all.
  *
  * No PNGs are taken here: per the suite convention, mid-flow captures are
  * page-source dumps (`dump()`), and screenshots are reserved for receipts and
  * the on-failure hook.
  */
 
-import { BasePage } from './basePage';
+import { BasePage, type PageContext } from './basePage';
+import type { LoginPage } from './loginPage';
 import { PERSONAL_PROFILE_LOCATORS as L } from '../locators/personalProfile.locators';
-import { HOME_TAB } from '../locators/common.locators';
+import {
+  HOME_TAB,
+  HOME_SELECTED,
+  HOME_NAV_BUTTON,
+  HOME_NAV_BUTTON_UIA,
+} from '../locators/common.locators';
 import { waitForPresent } from '../support/waits';
 import { scrollIntoView, backNavigateUntil } from '../support/navigation';
 import { randomAlnum } from '../support/random';
@@ -32,6 +44,10 @@ export class PersonalProfilePage extends BasePage {
   // extends this class and needs its own dump prefix, which a literal type
   // would forbid.
   protected readonly dumpPrefix: string = 'personal-profile';
+
+  constructor(ctx: PageContext, protected readonly login: LoginPage) {
+    super(ctx);
+  }
 
   /** The value the last edit typed — asserted after submit. */
   private lastEmail = '';
@@ -123,29 +139,62 @@ export class PersonalProfilePage extends BasePage {
         if (!(await this.ui.isDisplayed(selector))) await scrollIntoView(this.ui, selector);
       }
 
+      // The session can expire mid-step, replacing the screen with the login
+      // prompt — which has no bottom nav, so the target is simply "not
+      // displayed" and no amount of scrolling or retrying finds it.
+      await this.dismissLoginIfPrompted();
+
       let clicked = false;
+      let clickError: Error | undefined;
       try {
         await this.ui.click(selector);
         clicked = true;
       } catch (e) {
-        if (attempt === ATTEMPTS) {
-          await this.dump(`tap-failed-${what.replace(/\s+/g, '-').toLowerCase()}`);
-          throw new Error(`could not tap ${what}: ${(e as Error).message.split('\n')[0]}`);
-        }
+        clickError = e as Error;
       }
 
-      // No marker to check — the click landing is all we can assert.
-      if (clicked && !expect) return;
-      if (clicked && await waitForPresent(
-        this.ui, expect!, Math.min(expectTimeoutMs, Math.max(0, deadline - Date.now())))) return;
+      // Judge the outcome by the SCREEN, not by what the click reported.
+      //
+      // A click can throw and still have landed: the tap registers, the app
+      // navigates, and the element goes stale mid-call, so the driver reports
+      // "still not displayed" for a tap that in fact worked. Gating this check
+      // on `clicked` meant that case was never detected — the retry re-tapped a
+      // row that no longer existed, burned another 15s, and failed the step on a
+      // screen the flow had ALREADY reached. Confirmed from a dump taken at the
+      // failure: the app was on My Profile while the step was still trying to
+      // tap the My Profile row.
+      //
+      // After a thrown click the marker has either appeared already or it never
+      // will, so probe it briefly rather than waiting the full budget.
+      if (expect) {
+        const budget = clicked ? expectTimeoutMs : 1_500;
+        if (await waitForPresent(
+          this.ui, expect, Math.min(budget, Math.max(0, deadline - Date.now())))) return;
+      } else if (clicked) {
+        return;   // no marker to check — the click landing is all we can assert
+      }
 
       if (attempt === ATTEMPTS) {
+        if (clickError) {
+          await this.dump(`tap-failed-${what.replace(/\s+/g, '-').toLowerCase()}`);
+          throw new Error(`could not tap ${what}: ${clickError.message.split('\n')[0]}`);
+        }
         await this.dump(`tap-had-no-effect-${what.replace(/\s+/g, '-').toLowerCase()}`);
         throw new Error(
           `tapped ${what} ${ATTEMPTS} times but the expected screen never appeared`);
       }
       await this.ui.pause(700);   // let the screen settle, then re-tap
     }
+  }
+
+  /**
+   * Clear a re-authentication prompt if one is up. Best-effort: a flaky probe
+   * must never turn a passing step into a failure.
+   */
+  protected async dismissLoginIfPrompted(): Promise<void> {
+    try {
+      if (await this.login.isPrompted()) await this.login.performLogin();
+    } catch { /* ignore — the caller's own wait/retry still applies */ }
   }
 
   /**
@@ -207,9 +256,25 @@ export class PersonalProfilePage extends BasePage {
     // before EACH attempt is what makes the step recover.
     let lastError: unknown;
     for (let attempt = 1; attempt <= 2; attempt++) {
+      // Already arrived — a retry triggered by a slow screen transition must not
+      // undo a tap that in fact landed.
+      if (await this.ui.isPresent(L.MY_PROFILE_SCREEN_HEADER)) return;
+
       if (!(await this.ui.isPresent(L.MORE_SCREEN_HEADER))) {
+        // "Not on More" has TWO causes, and they need opposite responses:
+        //   - the app slipped BACK to Home  → the More tab is on screen, tap it
+        //   - the app ran AHEAD to a sub-screen → there is no bottom nav at all,
+        //     so tapping More is impossible and the attempt burns its full 15s
+        //     timeout before failing. Measured at 0/10 cycles on one device once
+        //     it settled into that state.
+        // Assuming the first cause is what made this step fail. Back out until
+        // the bottom nav is actually on screen — the device back button is the
+        // only way off a sub-screen — and only then reach for the More tab.
+        if (!(await this.ui.isPresent(HOME_TAB))) {
+          await backNavigateUntil(this.ui, HOME_TAB, 4);
+        }
         await this.settleAndTap(L.MORE_TILE_UIA, {
-          what: 'the More tab (app had slipped back to Home)',
+          what: 'the More tab',
           expect: L.MORE_SCREEN_HEADER,
         });
       }
@@ -430,10 +495,55 @@ export class PersonalProfilePage extends BasePage {
 
   // ---- Back navigation ---------------------------------------------------
 
-  /** Leave the profile stack so the next scenario starts from Home. */
+  /**
+   * Leave the profile stack so the next scenario starts from Home.
+   *
+   * Acknowledging the update popup does NOT reliably land on Home: sometimes it
+   * closes the whole stack down to the grid, sometimes it drops back onto the
+   * More screen. Waiting for HOME_TAB cannot tell those apart — that locator
+   * matches the bottom-nav Home BUTTON, which is rendered on every tab — so the
+   * old check passed while the app sat on More, and this step reported a
+   * redirect that had not happened.
+   *
+   * So: back out until the nav bar exists, tap Home, and confirm Home is the
+   * SELECTED tab, which is the only reading that proves the grid is showing.
+   *
+   * The tap is unconditional on purpose. Skipping it when Home already looks
+   * selected is the trap documented on HOME_SELECTED: the profile screens are
+   * reached FROM the Home tab, so the nav still reports Home as selected while a
+   * sub-screen is displayed, and trusting that reading measured 37% failures.
+   * One redundant tap costs well under a second; a wrong reading costs a cycle.
+   */
   async returnToHome(maxBacks = 6): Promise<boolean> {
-    const home = await backNavigateUntil(this.ui, HOME_TAB, maxBacks);
-    if (!home) await this.dump('exit-not-home');
-    return home;
+    // Back FIRST, tap second — and the order is not interchangeable. If the
+    // session has expired the app is on the login screen, which renders no
+    // bottom nav at all: there is no Home icon to tap there, so any attempt to
+    // reach one fails. The device back button is the only way off that screen,
+    // and backNavigateUntil presses exactly that until the nav bar reappears.
+    // Only then is there a Home icon to tap.
+    const nav = await backNavigateUntil(this.ui, HOME_TAB, maxBacks);
+    if (!nav) {
+      await this.dump('exit-no-nav-bar');
+      return false;
+    }
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      await this.tapHomeIcon();
+      if (await this.ui.isPresent(HOME_SELECTED)) return true;
+    }
+    await this.dump('exit-not-home');
+    return false;
+  }
+
+  /** Tap the bottom-nav Home icon, XPath first then UiSelector. */
+  private async tapHomeIcon(): Promise<void> {
+    for (const selector of [HOME_NAV_BUTTON, HOME_NAV_BUTTON_UIA]) {
+      try {
+        if (!(await this.ui.isPresent(selector))) continue;
+        await this.ui.click(selector, 5_000);
+        await this.ui.pause(700);
+        return;
+      } catch { /* try the next selector */ }
+    }
+    await this.ui.pause(400);
   }
 }

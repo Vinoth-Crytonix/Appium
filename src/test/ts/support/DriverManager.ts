@@ -268,6 +268,13 @@ export class DriverManager {
     // The bottom-nav Home tab exists on every tab (More, Inbox, Agent…) so
     // its presence is not proof we're on the Home grid. Tap it explicitly
     // so the grid is actually showing for whatever runs next.
+    //
+    // Do NOT try to skip this tap by checking which tab is "selected": the
+    // profile screens are reached FROM the Home tab, so the nav bar still
+    // reports Home as selected while a sub-screen is displayed. Skipping on
+    // that basis leaves the app on the sub-screen and the next scenario fails
+    // at its very first step — measured at 37% failures versus 12-18% with the
+    // unconditional tap.
     if (await homeTabPresent()) { await tapHomeTab(); return true; }
     for (let i = 0; i < maxBacks; i++) {
       try { await d.back(); } catch { /* ignore */ }

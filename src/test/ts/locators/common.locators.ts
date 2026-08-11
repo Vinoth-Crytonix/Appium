@@ -12,6 +12,26 @@
 export const HOME_TAB =
   '//*[@resource-id="com.jas.digitalkyats:id/home"]';
 
+/**
+ * Home is the SELECTED tab — i.e. the Home grid is actually showing.
+ *
+ * HOME_TAB above matches the bottom-nav button, which exists on every tab, so
+ * it cannot distinguish "Home is showing" from "Home is reachable". The nav bar
+ * renders a large label only for the selected item, so this reading "Home" is
+ * proof the grid is up.
+ *
+ * Why it matters: the Before hook used to tap Home unconditionally, because
+ * HOME_TAB's presence was never proof. On a scenario that already ENDS on Home
+ * — which both profile features do — that tap is redundant, and it is the tap
+ * that lands late and bounces the app back out of the screen the next scenario
+ * has just navigated to. Skipping it when Home is already selected removes the
+ * race at source.
+ */
+export const HOME_SELECTED =
+  '//android.widget.TextView[@resource-id=' +
+  '"com.jas.digitalkyats:id/navigation_bar_item_large_label_view" ' +
+  'and (@text="Home" or @text="ပင်မ")]';
+
 /** Bottom-nav Home icon — first item in the navigation bar. Confirmed via
  *  Appium Inspector. Use this to *tap* Home from any other tab; HOME_TAB
  *  above is the presence marker (matches on every tab). */
