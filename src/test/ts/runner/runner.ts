@@ -316,7 +316,28 @@ function collectFeatureFiles(dir: string): string[] {
     .sort();
 }
 
-/** Expand any directory arguments; file arguments pass through untouched. */
+const FEATURES_ROOT = 'src/test/resources/features';
+
+/**
+ * A bare name ("voucherLogin" or "voucherLogin.feature") that is not a path is
+ * looked up under FEATURES_ROOT, so callers need not type the full path.
+ * Returns undefined when nothing (or more than one file) matches — the arg then
+ * passes through and the existence check reports it.
+ */
+function findFeatureByName(arg: string): string | undefined {
+  if (arg.includes('/') || arg.includes('\\') || !fs.existsSync(FEATURES_ROOT)) return undefined;
+  const wanted = (arg.endsWith('.feature') ? arg : `${arg}.feature`).toLowerCase();
+  const matches = collectFeatureFiles(FEATURES_ROOT)
+    .filter(f => path.basename(f).toLowerCase() === wanted);
+  if (matches.length > 1) {
+    console.error(`[runner] "${arg}" matches several features — give the path instead:\n` +
+      matches.map(m => `  - ${m}`).join('\n'));
+    return undefined;
+  }
+  return matches[0];
+}
+
+/** Expand directory arguments and bare feature names; file paths pass through untouched. */
 function resolveFeatureArgs(args: string[]): string[] {
   return args.flatMap(arg => {
     try {
@@ -325,7 +346,10 @@ function resolveFeatureArgs(args: string[]): string[] {
         console.log(`[runner] ${arg} → ${found.length} feature file(s)`);
         return found;
       }
-    } catch { /* not a directory — treat as a file path */ }
+    } catch {
+      const byName = findFeatureByName(arg);
+      if (byName) return [byName];
+    }
     return [arg];
   });
 }
@@ -604,8 +628,7 @@ async function main(): Promise<number> {
   if (featurePaths.length === 0) {
     console.error('Usage: ts-node src/test/ts/runner/runner.ts [--parallel N] [--count N] <feature> [...]');
     console.error('       ts-node src/test/ts/runner/runner.ts --assign [--count N] <feature> <feature> ...');
-    console.error('Example: ts-node src/test/ts/runner/runner.ts --count 100 ' +
-      'src/test/resources/features/securityLayer/voucherLogin.feature');
+    console.error('Example: ts-node src/test/ts/runner/runner.ts --count 100 voucherLogin validateAppVersion');
     return 2;
   }
 
